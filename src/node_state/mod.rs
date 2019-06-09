@@ -49,7 +49,7 @@ impl<IO: Io> NodeState<IO> {
     }
     pub fn start_election(&mut self) {
         if let RoleState::Follower(_) = self.role {
-            let next = self.common.transit_to_candidate();
+            let next = self.common.transit_to_candidate(false);
             self.handle_role_change(next);
         }
     }

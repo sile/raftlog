@@ -178,7 +178,7 @@ where
     }
 
     /// `Candidate`状態に遷移する.
-    pub fn transit_to_candidate(&mut self) -> RoleState<IO> {
+    pub fn transit_to_candidate(&mut self, is_successor: bool) -> RoleState<IO> {
         self.metrics.transit_to_candidate_total.increment();
         let new_ballot = Ballot {
             term: (self.local_node.ballot.term.as_u64() + 1).into(),
@@ -186,7 +186,7 @@ where
         };
         self.set_ballot(new_ballot);
         self.set_role(Role::Candidate);
-        RoleState::Candidate(Candidate::new(self))
+        RoleState::Candidate(Candidate::new(self, is_successor))
     }
 
     /// `Follower`状態に遷移する.
@@ -298,7 +298,15 @@ where
         } else if message.header().term > self.local_node.ballot.term {
             // b) 相手のtermの方が大きい => 新しい選挙が始まっているので追従する
             let is_follower = self.local_node.ballot.voted_for != self.local_node.id;
-            if is_follower && self.local_node.ballot.voted_for != message.header().sender {
+            let is_successor = if let Message::RequestVoteCall(m) = &message {
+                m.is_successor
+            } else {
+                false
+            };
+            if is_follower
+                && !is_successor
+                && self.local_node.ballot.voted_for != message.header().sender
+            {
                 // リーダをフォロー中(i.e., 定期的にハートビートを受信できている)の場合には、
                 // そのリーダを信じて、現在の選挙を維持する.
                 //
@@ -316,7 +324,7 @@ where
                     self.transit_to_follower(candidate, Some(m.header))
                 } else {
                     // ローカルログの方が新しいので、自分で立候補する
-                    self.transit_to_candidate()
+                    self.transit_to_candidate(false)
                 }
             } else if let Message::AppendEntriesCall { .. } = message {
                 // 新リーダが当選していたので、その人のフォロワーとなる
@@ -324,7 +332,7 @@ where
                 self.unread_message = Some(message);
                 self.transit_to_follower(leader, None)
             } else if self.local_node.role == Role::Leader {
-                self.transit_to_candidate()
+                self.transit_to_candidate(false)
             } else {
                 let local = self.local_node.id.clone();
                 self.transit_to_follower(local, None)
@@ -425,7 +433,7 @@ where
                 // save_ballot処理などを共通化したいので、一度candidateを経由する。
                 // 既に、過半数以上のノードが`LogEntry::Retire`をcommitしているはずなので、
                 // この立候補は即座に成功するはず.
-                Some(self.transit_to_candidate())
+                Some(self.transit_to_candidate(true))
             } else {
                 None
             }

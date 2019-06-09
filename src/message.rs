@@ -100,6 +100,9 @@ pub struct RequestVoteCall {
 
     /// 送信者のログの終端位置.
     pub log_tail: LogPosition,
+
+    /// 送信者が現在のリーダの後継者かどうか.
+    pub is_successor: bool,
 }
 
 /// `RequestVoteRPC`の応答メッセージ.

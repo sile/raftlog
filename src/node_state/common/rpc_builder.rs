@@ -12,12 +12,13 @@ impl<'a, IO: 'a + Io> RpcCaller<'a, IO> {
     pub fn new(common: &'a mut Common<IO>) -> Self {
         RpcCaller { common }
     }
-    pub fn broadcast_request_vote(mut self) {
+    pub fn broadcast_request_vote(mut self, is_successor: bool) {
         let header = self.make_header(&NodeId::new(String::new())); // ブロードキャストノード時に空文字列を宛先に指定
         let log_tail = self.common.history.tail();
         let request = message::RequestVoteCall {
             header: header.clone(),
             log_tail,
+            is_successor,
         }
         .into();
         let self_reply = message::RequestVoteReply {

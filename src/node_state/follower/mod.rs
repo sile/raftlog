@@ -38,7 +38,7 @@ impl<IO: Io> Follower<IO> {
         Follower::Init(follower)
     }
     pub fn handle_timeout(&mut self, common: &mut Common<IO>) -> Result<NextState<IO>> {
-        Ok(Some(common.transit_to_candidate()))
+        Ok(Some(common.transit_to_candidate(false)))
     }
     pub fn handle_message(
         &mut self,

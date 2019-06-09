@@ -66,7 +66,7 @@ impl<IO: Io> Loader<IO> {
                             // candidateに遷移するのは`index==0`の場合のみ、とか？
                             // 若干起動時の待ちが増える可能性はあるが、全部follower、として起動する、
                             // というのもありかもしれない.
-                            let next = common.transit_to_candidate();
+                            let next = common.transit_to_candidate(false);
                             return Ok(Some(next));
                         }
                     }

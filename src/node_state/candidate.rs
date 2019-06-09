@@ -18,18 +18,20 @@ use {Io, Result};
 pub struct Candidate<IO: Io> {
     followers: HashSet<NodeId>,
     init: Option<IO::SaveBallot>,
+    is_successor: bool,
 }
 impl<IO: Io> Candidate<IO> {
-    pub fn new(common: &mut Common<IO>) -> Self {
+    pub fn new(common: &mut Common<IO>, is_successor: bool) -> Self {
         common.set_timeout(Role::Candidate);
         let future = common.save_ballot();
         Candidate {
             init: Some(future),
             followers: HashSet::new(),
+            is_successor,
         }
     }
     pub fn handle_timeout(&mut self, common: &mut Common<IO>) -> Result<NextState<IO>> {
-        Ok(Some(common.transit_to_candidate()))
+        Ok(Some(common.transit_to_candidate(false)))
     }
     pub fn handle_message(
         &mut self,
@@ -50,7 +52,9 @@ impl<IO: Io> Candidate<IO> {
     pub fn run_once(&mut self, common: &mut Common<IO>) -> Result<NextState<IO>> {
         if let Async::Ready(Some(())) = track!(self.init.poll())? {
             self.init = None;
-            common.rpc_caller().broadcast_request_vote();
+            common
+                .rpc_caller()
+                .broadcast_request_vote(self.is_successor);
         }
         Ok(None)
     }
